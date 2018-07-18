@@ -16,6 +16,10 @@
 			</div>
 		</div>
 		<p>Qwe value: {qwe}</p>
+        <!-- BEGIN allcookies -->
+        <p>cookie: {allcookies}</p>
+        <!-- END allcookies -->
+
 	</div>
 </form>
 
