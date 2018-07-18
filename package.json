@@ -1,11 +1,11 @@
 {
   "name": "nodebb-plugin-brf-energi",
-  "version": "0.2.3",
-  "description": "A starter kit for quickly creating NodeBB plugins",
+  "version": "0.1.0",
+  "description": "Modifications to nodeBB for BRF Energi",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/psychobunny/nodebb-plugin-brf-energi"
+    "url": "https://github.com/LudwikJaniuk/nodebb-plugin-brf-energi"
   },
   "keywords": [
     "nodebb",
@@ -14,12 +14,12 @@
     "shell"
   ],
   "author": {
-    "name": "psychobunny",
-    "email": "psycho.bunny@hotmail.com"
+    "name": "Ludvig Janiuk",
+    "email": "ludvig.janiuk@gmail.com"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/psychobunny/nodebb-plugin-brf-energi/issues"
+    "url": "https://github.com/LudwikJaniuk/nodebb-plugin-brf-energi/issues"
   },
   "readmeFilename": "README.md",
   "nbbpm": {
