@@ -1,6 +1,6 @@
 {
-	"id": "nodebb-plugin-quickstart",
-	"url": "https://github.com/NodeBB/nodebb-plugin-quickstart",
+	"id": "nodebb-plugin-brf-energi",
+	"url": "https://github.com/NodeBB/nodebb-plugin-brf-energi",
 	"library": "./library.js",
 	"hooks": [
 		{

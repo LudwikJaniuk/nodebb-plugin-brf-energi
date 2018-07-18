@@ -1,16 +1,16 @@
 {
-  "name": "nodebb-plugin-quickstart",
+  "name": "nodebb-plugin-brf-energi",
   "version": "0.2.3",
   "description": "A starter kit for quickly creating NodeBB plugins",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/psychobunny/nodebb-plugin-quickstart"
+    "url": "https://github.com/psychobunny/nodebb-plugin-brf-energi"
   },
   "keywords": [
     "nodebb",
     "plugin",
-    "quickstart",
+    "brf-energi",
     "shell"
   ],
   "author": {
@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/psychobunny/nodebb-plugin-quickstart/issues"
+    "url": "https://github.com/psychobunny/nodebb-plugin-brf-energi/issues"
   },
   "readmeFilename": "README.md",
   "nbbpm": {
