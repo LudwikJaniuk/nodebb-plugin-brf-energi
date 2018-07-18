@@ -15,6 +15,7 @@
 				<input type="text" id="setting-2" name="setting-2" title="Setting 2" class="form-control" placeholder="Setting 2">
 			</div>
 		</div>
+		<p>Qwe value: {$qwe}</p>
 	</div>
 </form>
 

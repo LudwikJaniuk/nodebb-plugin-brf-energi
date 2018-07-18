@@ -15,6 +15,7 @@ plugin.init = function(params, callback) {
 	router.get('/admin/plugins/brf-energi', hostMiddleware.admin.buildHeader, controllers.renderAdminPage);
 	router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
 
+
 	callback();
 };
 
