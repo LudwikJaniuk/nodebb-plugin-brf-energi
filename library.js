@@ -5,6 +5,7 @@ var User = module.parent.require('./user');
 var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
+var nconf = module.parent.require('nconf');
 var CustomStrategy = require('passport-custom').Strategy;
 var authenticationController = module.parent.require('./controllers/authentication');
 
@@ -35,9 +36,9 @@ plugin.init = function(params, callback) {
 
   router.get('/authmetryifneeded', function(req, res, next) {
     if(req.loggedIn){
-      res.redirect("/");
+      res.redirect(nconf.get('relative_path')+ "/");
     } else {
-      res.redirect("/auth/metry");
+      res.redirect(nconf.get('relative_path') +"/auth/metry");
     }
   });
 
