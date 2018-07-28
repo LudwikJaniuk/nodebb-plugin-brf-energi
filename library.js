@@ -19,7 +19,7 @@ plugin.preinit = function(params, callback) {
   });
 
   callback();
-}
+};
 
 plugin.init = function(params, callback) {
   var app = params.app;
@@ -46,12 +46,6 @@ plugin.init = function(params, callback) {
 
   callback();
 };
-
-plugin.auth = function({req, res, next}) {
-  console.log("WHAT")
-  winston.info("User is not authed!");
-  next();
-}
 
 plugin.addAdminNavigation = function(header, callback) {
   header.plugins.push({
