@@ -6,8 +6,11 @@ var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
+var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
 var authenticationController = module.parent.require('./controllers/authentication');
+
+var jwt = require("jsonwebtoken");
 
 var plugin = {};
 
@@ -20,7 +23,7 @@ plugin.preinit = function(params, callback) {
   });
 
   callback();
-};
+}
 
 plugin.init = function(params, callback) {
   var app = params.app;
@@ -35,18 +38,37 @@ plugin.init = function(params, callback) {
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
 
   router.get('/authmetryifneeded', function(req, res, next) {
+
+
+    var tok = req.query.brfauth;
+    console.log(tok)
+    var secret = nconf.get('BRFENERGI_SESSION_SECRET')
+    console.log("Secret: " + secret)
+    try{
+      var obj = jwt.verify(tok, secret);
+      console.log(obj);
+    } catch(e) {
+      console.log("No valid jwt");
+    }
+
+
     if(req.loggedIn){
-      res.redirect(nconf.get('relative_path')+ "/");
+      res.redirect("/");
     } else {
-      res.redirect(nconf.get('relative_path') +"/auth/metry");
+      res.redirect("/auth/metry");
     }
   });
-
 
   winston.info("Set up plugin BRF!")
 
   callback();
 };
+
+plugin.auth = function({req, res, next}) {
+  console.log("WHAT")
+  winston.info("User is not authed!");
+  next();
+}
 
 plugin.addAdminNavigation = function(header, callback) {
   header.plugins.push({
@@ -63,112 +85,38 @@ var constants = Object.freeze({
 });
 
 plugin.addStrategy = function(strategies, callback) {
-  /*
-  passportOAuth = require('passport-oauth')[constants.type === 'oauth' ? 'OAuthStrategy' : 'OAuth2Strategy'];
-
-  if (constants.type === 'oauth') {
-    // OAuth options
-    opts = constants.oauth;
-    opts.callbackURL = nconf.get('url') + '/auth/' + constants.name + '/callback';
-
-    passportOAuth.Strategy.prototype.userProfile = function(token, secret, params, done) {
-      this._oauth.get(constants.userRoute, token, secret, function(err, body, res) {
-        if (err) { return done(new InternalOAuthError('failed to fetch user profile', err)); }
-
-        try {
-          var json = JSON.parse(body);
-          OAuth.parseUserReturn(json, function(err, profile) {
-            if (err) return done(err);
-            profile.provider = constants.name;
-
-            done(null, profile);
-          });
-        } catch(e) {
-          done(e);
-        }
-      });
-    };
-  } else if (constants.type === 'oauth2') {
-    // OAuth 2 options
-    opts = constants.oauth2;
-    opts.callbackURL = nconf.get('url') + '/auth/' + constants.name + '/callback';
-
-    passportOAuth.Strategy.prototype.userProfile = function(accessToken, done) {
-      var self = this
-      this._oauth2.get(constants.userRoute, accessToken, function(err, body, res) {
-        if (err) { return done(new InternalOAuthError('failed to fetch user profile', err)); }
-
-        try {
-          var json = JSON.parse(body);
-
-          if (json.data.is_organization) {
-            self._oauth2.get(constants.collaboratorRoute, accessToken, function(err, body, res) {
-              if (err) { return done(new InternalOAuthError('failed to fetch user profile', err)); }
-
-              OAuth.parseUserReturn(JSON.parse(body), function(err, profile) {
-                if (err) return done(err);
-                profile.provider = constants.name;
-                done(null, profile);
-              });
-            })
-          } else {
-            OAuth.parseUserReturn(json, function(err, profile) {
-              if (err) return done(err);
-              profile.provider = constants.name;
-              done(null, profile);
-            });
-          }
-        } catch(e) {
-          done(e);
-        }
-      });
-    };
-  }
-
-  opts.passReqToCallback = true;
-
-  passport.use(constants.name, new passportOAuth(opts, function(req, token, secret, profile, done) {
-    OAuth.login({
-      oAuthid: profile.id,
-      handle: profile.displayName,
-      email: profile.emails[0].value,
-      isAdmin: profile.isAdmin
-    }, function(err, user) {
-      if (err) {
-        return done(err);
-      }
-
-      authenticationController.onSuccessfulLogin(req, user.uid);
-      done(null, user);
-    });
-  }));
-
-  strategies.push({
-    name: constants.name,
-    url: '/auth/' + constants.name,
-    callbackURL: '/auth/' + constants.name + '/callback',
-    icon: 'fa-check-square',
-    scope: (constants.scope || '').split(',')
-  });
-
-  callback(null, strategies);
-*/
-
-  // ==========================0000
   passport.use(constants.name, new CustomStrategy(
     function(req, callback) {
       var userslug = req.params.userslug;
+      var profileToken = req.query.brfauth;
 
       winston.info("tre");
-      winston.info(this);
-      winston.info(typeof this);
-      winston.info(Object.keys(this));
+      winston.info(profileToken);
 
       async.waterfall([
-        function(next) {
-          User.getUidByUserslug(userslug, next);
+        function (next) {
+          var secret = nconf.get('BRFENERGI_SESSION_SECRET')
+          jwt.verify(profileToken, secret, next);
         },
-        function(uid, next) {
+        function(profile, next) {
+          winston.info("got th");
+          winston.info(profile);
+
+          if(!profile.metryID) return next(new Error("No metryID provided in JWT from BRF."));
+          if(!profile.name) return next(new Error("No name provided in JWT from BRF."));
+          if(!profile.email) return next(new Error("No email provided in JWT from BRF."));
+
+          var metryLoginPayload = { // intentionally skipping isAdmin - admin on BRF does not mean admin on forum.
+            oAuthid: profile.metryID,
+            handle: profile.name,
+            email: profile.email,
+          }
+          metry.login(metryLoginPayload, next)
+        },
+        function(uidObj, next) {
+          var uid = uidObj.uid;
+          console.log("uid:")
+          console.log(uid)
           User.getUsers([uid], null, next);
         },
         function(users, next) {
@@ -176,7 +124,7 @@ plugin.addStrategy = function(strategies, callback) {
             return next("Wrong users length!");
           }
 
-          winston.info(userslug)
+          winston.info("User")
           winston.info(users[0])
           next(null, users[0]);
         }
@@ -184,6 +132,8 @@ plugin.addStrategy = function(strategies, callback) {
         if(err) {
           winston.error(userslug)
           winston.error(err)
+          callback(err, user)
+          return
         }
 
         authenticationController.onSuccessfulLogin(req, user.uid);
@@ -196,7 +146,7 @@ plugin.addStrategy = function(strategies, callback) {
   strategies.push({
     name: constants.name,
     url: '/auth/' + constants.name + '/:userslug',
-    callbackURL: '/auth/' + constants.name + '/callback',
+    callbackURL: '/auth/' + constants.name + '/callback/:userslug',
     icon: 'fa-check-square',
     scope: 'basic'
   });
@@ -212,4 +162,3 @@ module.exports = plugin;
 //	{ "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
 // 	{ "hook": "action:middleware.authenticate", "method": "auth" },
 //	{ "hook": "filter:auth.init", "method": "addStrategy" }
-
