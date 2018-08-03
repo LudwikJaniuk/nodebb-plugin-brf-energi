@@ -8,6 +8,7 @@ var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
+var encryptor = require('simple-encryptor')(process.env.URL_ENCRYPTION_KEY);
 var authenticationController = module.parent.require('./controllers/authentication');
 
 var jwt = require("jsonwebtoken");
@@ -98,10 +99,15 @@ plugin.addStrategy = function(strategies, callback) {
           var secret = nconf.get('BRFENERGI_SESSION_SECRET')
           jwt.verify(profileToken, secret, next);
         },
-        function(profile, next) {
+        function(profileContainer, next) {
           winston.info("got th");
-          winston.info(profile);
+          winston.info(profileContainer);
 
+          if(!profileContainer.msg) return next(new Error("No encrypted message in JWT"));
+
+          var profile = encryptor.decrypt(profileContainer.msg)
+
+          if(!profile) return next(new Error("Encrypted profile could not be decoded"));
           if(!profile.metryID) return next(new Error("No metryID provided in JWT from BRF."));
           if(!profile.name) return next(new Error("No name provided in JWT from BRF."));
           if(!profile.email) return next(new Error("No email provided in JWT from BRF."));
@@ -162,3 +168,4 @@ module.exports = plugin;
 //	{ "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
 // 	{ "hook": "action:middleware.authenticate", "method": "auth" },
 //	{ "hook": "filter:auth.init", "method": "addStrategy" }
+
