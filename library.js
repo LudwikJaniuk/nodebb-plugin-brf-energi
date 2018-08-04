@@ -8,7 +8,9 @@ var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
-var encryptor = require('simple-encryptor')(process.env.URL_ENCRYPTION_KEY);
+console.log("KEY:")
+console.log(process.env.URL_ENCRYPTION_KEY)
+var encryptor = require('simple-encryptor')(process.env.URL_ENCRYPTION_KEY)
 var authenticationController = module.parent.require('./controllers/authentication');
 
 var jwt = require("jsonwebtoken");
@@ -44,7 +46,6 @@ plugin.init = function(params, callback) {
     var tok = req.query.brfauth;
     console.log(tok)
     var secret = nconf.get('BRFENERGI_SESSION_SECRET')
-    console.log("Secret: " + secret)
     try{
       var obj = jwt.verify(tok, secret);
       console.log(obj);
@@ -81,18 +82,41 @@ plugin.addAdminNavigation = function(header, callback) {
   callback(null, header);
 };
 
-var constants = Object.freeze({
-  name: 'dummy',
-});
 
+/**
+ * We add a strategy that exists on the callback endpoint visible later
+ * Makes it possible to authorize with one URL, no redirects/interstitals/callbacks.
+ * @param brfauth (URL parameter) makes a claim that a certain user is logged in at BRF, and should
+ * therefore be granted access to nodebb. If the claim is valid, we auth the user (if already has account,
+ * log in, otherwise create profile from information in the param.
+ * Structure:
+ * brfauth is a JWT signed with BRFENERGI_SESSION_SECRET on form:
+ * {
+ *   msg: PROFILE,
+ *   [iat,]
+ *   [exp,]
+ *   [...]
+ * }
+ * The signing makes sure only BRFEenergi could have made the claim, since only it has access to the shared secret.
+ * PROFILE must be an encrypted string.
+ * PROFILE must be decryptable by simple-encryptor with the key URL_ENCRYPTION_KEY. It should decrypt to a JSON object
+ * of structure:
+ * {
+ *   metryID,
+ *   name,
+ *   email
+ * }
+ * These things are necessary for creating a new profile if needed. Encryption is done because all this data lies in
+ * the URL which might be logged basically anywhere, and email is sensitive data.
+ */
+var constants = Object.freeze({
+  name: 'brf',
+});
 plugin.addStrategy = function(strategies, callback) {
   passport.use(constants.name, new CustomStrategy(
     function(req, callback) {
       var userslug = req.params.userslug;
       var profileToken = req.query.brfauth;
-
-      winston.info("tre");
-      winston.info(profileToken);
 
       async.waterfall([
         function (next) {
@@ -100,9 +124,6 @@ plugin.addStrategy = function(strategies, callback) {
           jwt.verify(profileToken, secret, next);
         },
         function(profileContainer, next) {
-          winston.info("got th");
-          winston.info(profileContainer);
-
           if(!profileContainer.msg) return next(new Error("No encrypted message in JWT"));
 
           var profile = encryptor.decrypt(profileContainer.msg)
@@ -121,8 +142,6 @@ plugin.addStrategy = function(strategies, callback) {
         },
         function(uidObj, next) {
           var uid = uidObj.uid;
-          console.log("uid:")
-          console.log(uid)
           User.getUsers([uid], null, next);
         },
         function(users, next) {
@@ -130,8 +149,6 @@ plugin.addStrategy = function(strategies, callback) {
             return next("Wrong users length!");
           }
 
-          winston.info("User")
-          winston.info(users[0])
           next(null, users[0]);
         }
       ], function(err, user) {
@@ -147,22 +164,19 @@ plugin.addStrategy = function(strategies, callback) {
       })
     }
   ));
-  winston.info("A");
 
   strategies.push({
     name: constants.name,
-    url: '/auth/' + constants.name + '/:userslug',
-    callbackURL: '/auth/' + constants.name + '/callback/:userslug',
+    // url: '',
+    callbackURL: '/auth/' + constants.name ,
     icon: 'fa-check-square',
     scope: 'basic'
   });
-  winston.info("B");
 
   return callback(null, strategies);
 };
 
 module.exports = plugin;
-
 
 //	{ "hook": "static:app.preload", "method": "preinit" },
 //	{ "hook": "filter:admin.header.build", "method": "addAdminNavigation" },

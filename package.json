@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "jsonwebtoken": "^8.3.0",
+    "nodebb-plugin-sso-metry": "^0.4.1",
     "passport-custom": "^1.0.5",
     "simple-encryptor": "^1.4.0"
   }
