@@ -8,8 +8,6 @@ var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
-console.log("KEY:")
-console.log(process.env.URL_ENCRYPTION_KEY)
 var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'))
 var authenticationController = module.parent.require('./controllers/authentication');
 
@@ -115,7 +113,6 @@ var constants = Object.freeze({
 plugin.addStrategy = function(strategies, callback) {
   passport.use(constants.name, new CustomStrategy(
     function(req, callback) {
-      var userslug = req.params.userslug;
       var profileToken = req.query.brfauth;
 
       async.waterfall([
@@ -153,7 +150,6 @@ plugin.addStrategy = function(strategies, callback) {
         }
       ], function(err, user) {
         if(err) {
-          winston.error(userslug)
           winston.error(err)
           callback(err, user)
           return
