@@ -10,7 +10,7 @@ var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
 console.log("KEY:")
 console.log(process.env.URL_ENCRYPTION_KEY)
-var encryptor = require('simple-encryptor')(process.env.URL_ENCRYPTION_KEY)
+var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'))
 var authenticationController = module.parent.require('./controllers/authentication');
 
 var jwt = require("jsonwebtoken");
