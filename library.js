@@ -39,28 +39,12 @@ plugin.init = function(params, callback) {
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
 
   router.get('/authmetryifneeded', function(req, res, next) {
-
-
-    var tok = req.query.brfauth;
-    console.log(tok)
-    var secret = nconf.get('BRFENERGI_SESSION_SECRET')
-    try{
-      var obj = jwt.verify(tok, secret);
-      console.log(obj);
-    } catch(e) {
-      console.log("No valid jwt");
-    }
-
-
     if(req.loggedIn){
-      res.redirect("/");
+      res.redirect(nconf.get('url'));
     } else {
-      res.redirect("/auth/metry");
+      res.redirect(nconf.get('url') + '/auth/metry');
     }
   });
-
-  winston.info("Set up plugin BRF!")
-
   callback();
 };
 
