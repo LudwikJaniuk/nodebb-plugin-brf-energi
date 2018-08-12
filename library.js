@@ -7,24 +7,13 @@ var winston = module.parent.require('winston');
 var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
-var CustomStrategy = require('passport-custom').Strategy;
-var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'))
 var authenticationController = module.parent.require('./controllers/authentication');
 
+var CustomStrategy = require('passport-custom').Strategy;
+var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'));
 var jwt = require("jsonwebtoken");
 
 var plugin = {};
-
-plugin.preinit = function(params, callback) {
-  winston.info("Plugin happens");
-  var app = params.app;
-  app.get('/test', function(req, res, next) {
-    winston.info("Request happens");
-    res.send(505);
-  });
-
-  callback();
-}
 
 plugin.init = function(params, callback) {
   var app = params.app;
@@ -32,27 +21,19 @@ plugin.init = function(params, callback) {
   var hostMiddleware = params.middleware;
   var hostControllers = params.controllers;
 
-  // We create two routes for every view. One API call, and the actual route itself.
-  // Just add the buildHeader middleware to your route and NodeBB will take care of everything for you.
-
   router.get('/admin/plugins/brf-energi', hostMiddleware.admin.buildHeader, controllers.renderAdminPage);
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
 
   router.get('/authmetryifneeded', function(req, res, next) {
+    var baseUrl = nconf.get('url');
     if(req.loggedIn){
-      res.redirect(nconf.get('url'));
+      res.redirect(baseUrl);
     } else {
-      res.redirect(nconf.get('url') + '/auth/metry');
+      res.redirect(baseUrl + '/auth/metry');
     }
   });
   callback();
 };
-
-plugin.auth = function({req, res, next}) {
-  console.log("WHAT")
-  winston.info("User is not authed!");
-  next();
-}
 
 plugin.addAdminNavigation = function(header, callback) {
   header.plugins.push({
@@ -63,7 +44,6 @@ plugin.addAdminNavigation = function(header, callback) {
 
   callback(null, header);
 };
-
 
 /**
  * We add a strategy that exists on the callback endpoint visible later
@@ -94,56 +74,58 @@ plugin.addAdminNavigation = function(header, callback) {
 var constants = Object.freeze({
   name: 'brf',
 });
+
+function createCustomStrategy() {
+  return new CustomStrategy(function(req, callback) {
+    var profileToken = req.query.brfauth;
+
+    async.waterfall([
+      function (next) {
+        jwt.verify(profileToken, nconf.get('BRFENERGI_SESSION_SECRET'), next);
+      },
+      function(profileContainer, next) {
+        if(!profileContainer.msg) return next(new Error("No encrypted message in JWT"));
+
+        var profile = encryptor.decrypt(profileContainer.msg);
+
+        if(!profile) return next(new Error("Encrypted profile could not be decoded"));
+        if(!profile.metryID) return next(new Error("No metryID provided in JWT from BRF."));
+        if(!profile.name) return next(new Error("No name provided in JWT from BRF."));
+        if(!profile.email) return next(new Error("No email provided in JWT from BRF."));
+
+        var metryLoginInfo = {
+          oAuthid: profile.metryID,
+          handle: profile.name,
+          email: profile.email,
+          // intentionally skipping isAdmin - admin on BRF does not mean admin on forum.
+        };
+        metry.login(metryLoginInfo, next)
+      },
+      function(uidObj, next) {
+        var uid = uidObj.uid;
+        User.getUsers([uid], null, next);
+      },
+      function(users, next) {
+        if(users.length !== 1) {
+          return next("Wrong users length!");
+        }
+
+        next(null, users[0]);
+      }
+    ], function(err, user) {
+      if(err) {
+        winston.error(err);
+        return callback(err, user);
+      }
+
+      authenticationController.onSuccessfulLogin(req, user.uid); // Is ths necessary? Does metry do this?
+      callback(err, user)
+    })
+  });
+}
+
 plugin.addStrategy = function(strategies, callback) {
-  passport.use(constants.name, new CustomStrategy(
-    function(req, callback) {
-      var profileToken = req.query.brfauth;
-
-      async.waterfall([
-        function (next) {
-          var secret = nconf.get('BRFENERGI_SESSION_SECRET')
-          jwt.verify(profileToken, secret, next);
-        },
-        function(profileContainer, next) {
-          if(!profileContainer.msg) return next(new Error("No encrypted message in JWT"));
-
-          var profile = encryptor.decrypt(profileContainer.msg)
-
-          if(!profile) return next(new Error("Encrypted profile could not be decoded"));
-          if(!profile.metryID) return next(new Error("No metryID provided in JWT from BRF."));
-          if(!profile.name) return next(new Error("No name provided in JWT from BRF."));
-          if(!profile.email) return next(new Error("No email provided in JWT from BRF."));
-
-          var metryLoginPayload = { // intentionally skipping isAdmin - admin on BRF does not mean admin on forum.
-            oAuthid: profile.metryID,
-            handle: profile.name,
-            email: profile.email,
-          }
-          metry.login(metryLoginPayload, next)
-        },
-        function(uidObj, next) {
-          var uid = uidObj.uid;
-          User.getUsers([uid], null, next);
-        },
-        function(users, next) {
-          if(users.length !== 1) {
-            return next("Wrong users length!");
-          }
-
-          next(null, users[0]);
-        }
-      ], function(err, user) {
-        if(err) {
-          winston.error(err)
-          callback(err, user)
-          return
-        }
-
-        authenticationController.onSuccessfulLogin(req, user.uid);
-        callback(err, user)
-      })
-    }
-  ));
+  passport.use(constants.name, createCustomStrategy());
 
   strategies.push({
     name: constants.name,
