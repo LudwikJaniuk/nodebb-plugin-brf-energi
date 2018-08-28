@@ -5,7 +5,8 @@
 	"hooks": [
 		{ "hook": "static:app.load", "method": "init" },
 		{ "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
-		{ "hook": "filter:auth.init", "method": "addStrategy" }
+		{ "hook": "filter:auth.init", "method": "addStrategy" },
+		{ "hook": "action:middleware.authenticate", "method": "authByBrf" }
 	],
 	"staticDirs": {
 		"static": "./static"
