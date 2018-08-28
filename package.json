@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-brf-energi",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Modifications to nodeBB for BRF Energi",
   "main": "library.js",
   "repository": {
