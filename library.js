@@ -5,14 +5,13 @@ var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
-var meta = module.parent.require('./meta');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
 var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'));
 var authenticationController = module.parent.require('./controllers/authentication');
 var jwt = require("jsonwebtoken");
 
-var controllers = require('./lib/controllers')(meta);
+var controllers = require('./lib/controllers');
 
 var plugin = {};
 
