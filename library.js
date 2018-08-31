@@ -24,7 +24,7 @@ plugin.preinit = function(params, callback) {
   });
 
   callback();
-}
+};
 
 plugin.init = function(params, callback) {
   var app = params.app;
@@ -100,7 +100,7 @@ function loginUserByBrf(req, callback) {
 
       var profile = encryptor.decrypt(profileContainer.msg);
 
-      if(!profile) return fail("Encrypted profile could not be decoded");
+      if(!profile) return fail("Profile could not be decrypted from message.");
       if(!profile.metryID) return fail("No metryID provided in JWT from BRF.");
       if(!profile.name) return fail("No name provided in JWT from BRF.");
       if(!profile.email) return fail("No email provided in JWT from BRF.");
@@ -130,6 +130,8 @@ function loginUserByBrf(req, callback) {
       return
     }
 
+		// Need to do this manually because nodebb is stupid. Replicating /src/routes/authentication line 28
+		req.uid = user.uid
     authenticationController.onSuccessfulLogin(req, user.uid);
     callback(err, user)
   })
