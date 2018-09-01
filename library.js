@@ -26,12 +26,22 @@ plugin.preinit = function(params, callback) {
   callback();
 };
 
+// This plugin defines a login strategy, but it's a background thing, we don't want users to actually see it.
+function overrideAuthStrategyGetter() {
+	var authLib = module.parent.require('./routes/authentication');
+	var origFunction = authLib.getLoginStrategies;
+	authLib.getLoginStrategies = function() {
+		return origFunction().filter(strategy => strategy.name != constants.name);
+	}
+}
+
 plugin.init = function(params, callback) {
   var app = params.app;
   var router = params.router;
   var hostMiddleware = params.middleware;
   var hostControllers = params.controllers;
 
+  overrideAuthStrategyGetter();
   // We create two routes for every view. One API call, and the actual route itself.
   // Just add the buildHeader middleware to your route and NodeBB will take care of everything for you.
 
