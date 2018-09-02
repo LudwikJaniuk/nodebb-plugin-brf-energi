@@ -142,6 +142,7 @@ function loginUserByBrf(req, callback) {
 
 		// Need to do this manually because nodebb is stupid. Replicating /src/routes/authentication line 28
 		req.uid = user.uid
+		req.loggedIn = true
     authenticationController.onSuccessfulLogin(req, user.uid);
     callback(err, user)
   })
