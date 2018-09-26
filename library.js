@@ -47,10 +47,16 @@ plugin.init = function(params, callback) {
 
   router.get('/admin/plugins/brf-energi', hostMiddleware.admin.buildHeader, controllers.renderAdminPage);
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
+  router.get('/api/whoami', passport.authenticate("brf"), function(req, res, next) {
+  	if(req.user) {
+  		console.log(req.user)
+  		res.send({username: req.user.username, uid: req.user.uid});
+		} else {
+  		res.sendStatus(403);
+		}
+	})
 
   router.get('/authmetryifneeded', function(req, res, next) {
-
-
     var tok = req.query.brfauth;
     console.log(tok)
     var secret = nconf.get('BRFENERGI_SESSION_SECRET')
