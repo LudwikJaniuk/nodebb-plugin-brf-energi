@@ -1,6 +1,8 @@
 "use strict";
 
 var User = module.parent.require('./user');
+var Groups = module.parent.require('./groups');
+var Configs = module.parent.require('./configs');
 var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
@@ -75,7 +77,28 @@ plugin.init = function(params, callback) {
     }
   });
 
-  winston.info("Set up plugin BRF!")
+  // Automatically setting right config options so forum works well basically
+	Configs.set("powered-by", "ballmer-peak", (err) => {
+    if(err) winston.error(err);
+		else winston.info("set powered-by");
+  });
+
+	Configs.set("access-control-allow-origin-regex", ".*", (err) => {
+		if(err) winston.error(err);
+		else winston.info("set origin regex");
+	});
+
+	Configs.set("access-control-allow-headers", "Content-Type,User-Agent,brfauth,Cache-Control", (err) => {
+		if(err) winston.error(err);
+		else winston.info("set allowheaders");
+	});
+
+	Groups.join('cid:' + 0 + ':privileges:' + 'groups:local:login', 'registered-users', () => {
+		if(err) winston.error(err);
+		else winston.info("Successfully joined group for privileges");
+	});
+
+  winston.info("Set up plugin BRF!");
 
   callback();
 };
