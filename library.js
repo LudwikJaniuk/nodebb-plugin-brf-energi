@@ -1,8 +1,8 @@
 "use strict";
 
-var User = module.parent.require('./user');
-var Groups = module.parent.require('./groups');
-var Configs = module.parent.require('./meta/configs');
+var User = require.main.require('./src/user');
+var Groups = require.main.require('./src/groups');
+var Configs = require.main.require('./src/meta/configs');
 var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
@@ -10,7 +10,7 @@ var nconf = module.parent.require('nconf');
 var metry = module.parent.require('nodebb-plugin-sso-metry');
 var CustomStrategy = require('passport-custom').Strategy;
 var encryptor = require('simple-encryptor')(nconf.get('URL_ENCRYPTION_KEY'));
-var authenticationController = module.parent.require('./controllers/authentication');
+var authenticationController = require.main.require('./src/controllers/authentication');
 var jwt = require("jsonwebtoken");
 
 var controllers = require('./lib/controllers');
@@ -30,7 +30,7 @@ plugin.preinit = function(params, callback) {
 
 // This plugin defines a login strategy, but it's a background thing, we don't want users to actually see it.
 function overrideAuthStrategyGetter() {
-	var authLib = module.parent.require('./routes/authentication');
+	var authLib = require.main.require('./src/routes/authentication');
 	var origFunction = authLib.getLoginStrategies;
 	authLib.getLoginStrategies = function() {
 		return origFunction().filter(strategy => strategy.name != constants.name);
