@@ -3,6 +3,7 @@
 var User = require.main.require('./src/user');
 var Groups = require.main.require('./src/groups');
 var Configs = require.main.require('./src/meta/configs');
+var Meta = require.main.require('./src/meta');
 var passport = module.parent.require('passport');
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
@@ -57,7 +58,6 @@ plugin.init = function(params, callback) {
   		res.sendStatus(403);
 		}
 	})
-
   router.get('/authmetryifneeded', function(req, res, next) {
     var tok = req.query.brfauth;
     console.log(tok)
@@ -75,6 +75,17 @@ plugin.init = function(params, callback) {
     } else {
       res.redirect("/auth/metry");
     }
+  });
+
+  router.get('/brftouch', function(req, res, next) {
+    res.send("EEEEEEEEEEEEEEEEEEEE");
+    //Basically must use the same strategy as the metry code, just different end action
+    //should return an userId
+  });
+
+  router.get('/brfauth', function(req, res, next) {
+    // just normal authentication. But or is this a new strategy? 
+    //should return an userId
   });
 
 
@@ -99,6 +110,10 @@ plugin.init = function(params, callback) {
     else winston.info("Successfully joined group for privileges");
   });
 
+  Meta.settings.setOne('writeapi', 'jwt:secret', 'testturu', function(err) {
+    if(err) {console.log(err);}
+    console.log("Seems we have set the setting");
+  })
 
   winston.info("Set up plugin BRF!");
 
