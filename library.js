@@ -5,6 +5,7 @@ var Groups = require.main.require('./src/groups');
 var Configs = require.main.require('./src/meta/configs');
 var Meta = require.main.require('./src/meta');
 var passport = module.parent.require('passport');
+var PasswordStrategy = module.parent.require('passport-local').Strategy;
 var winston = module.parent.require('winston');
 var async = module.parent.require('async');
 var nconf = module.parent.require('nconf');
@@ -83,10 +84,14 @@ plugin.init = function(params, callback) {
     //should return an userId
   });
 
-  router.get('/brfauth', function(req, res, next) {
+  router.get('/brfauth/uid',
     // just normal authentication. But or is this a new strategy? 
     //should return an userId
-  });
+    passport.authenticate('local', {}),
+    function (req, res) {
+      res.send({uid: req.uid});
+    }
+  );
 
 
   // Automatically setting right config options so forum works well basically
