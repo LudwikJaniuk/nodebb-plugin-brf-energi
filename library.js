@@ -70,7 +70,6 @@ plugin.init = function(params, callback) {
       console.log("No valid jwt");
     }
 
-
     if(req.loggedIn){
       res.redirect("/");
     } else {
@@ -79,9 +78,50 @@ plugin.init = function(params, callback) {
   });
 
   router.get('/brftouch', function(req, res, next) {
-    res.send("EEEEEEEEEEEEEEEEEEEE");
     //Basically must use the same strategy as the metry code, just different end action
     //should return an userId
+
+    //This could basically be a wrapper around metrysso login
+
+
+    // SO: email, username, metryid
+    // If metry present:
+    //   use oauth login first. If that gives a uid:
+    //   do we check the email? no... I suppose we just return it then.
+    //   And so it will be made that an accound with that metry surely exists.
+    //
+    // If not present:
+    // Either find the user or create them.
+
+    touchAuthenticatedUser(req.body.token, function(err, uidObject){
+      if(err) return res.send(400);
+      res.send({uid: uidObject.uid});
+    });
+/*
+    var token = req.body.token;
+    if(!!token) {
+      res.status(400);
+      return;
+    }
+
+    var secret = nconf.get('BRFENERGI_SESSION_SECRET');
+    var decoded;
+    try{
+      var decoded = jwt.verify(tok, secret);
+    } catch(e) {
+      res.status(500);
+      return;
+    }
+
+    if(!!decoded.metryId) {
+
+      return;
+    }
+    res.status(402);
+    return;
+
+    // TOO get user by email and then either login or create
+    */
   });
 
   router.get('/brfauth/uid',
@@ -145,6 +185,57 @@ plugin.addAdminNavigation = function(header, callback) {
 
   callback(null, header);
 };
+
+
+function touchAuthenticatedUser(profileToken, callback) {
+  var fail = (msg) => {winston.error(msg); return callback(null, null);};
+  if(!profileToken) return fail('No JWT provided for brf authentication');
+
+  async.waterfall([
+    function (next) {
+      var secret = nconf.get('BRFENERGI_SESSION_SECRET');
+      console.log("Tryna decoe")
+      console.log(profileToken)
+      console.log(secret)
+      jwt.verify(profileToken, secret, next);
+    },
+    function(profile, next) {
+      if(!profile) return fail("Profile could not be extracted from message.");
+      if(!!profile.metryID) {
+        if(!profile.name) return fail("No name provided in JWT from BRF.");
+        if(!profile.email) return fail("No email provided in JWT from BRF.");
+
+        var metryLoginPayload = { // intentionally skipping isAdmin - admin on BRF does not mean admin on forum.
+          oAuthid: profile.metryID,
+          handle: profile.name,
+          email: profile.email,
+        };
+        metry.login(metryLoginPayload, next)
+      } else {
+        next(new Error("NOt implemented w/o metryid"))
+        return;
+        /*
+
+    User.getUidByUsername(req.body.username, function(err, uid) {
+      if(err) {
+        res.status(500);
+        console.log(err);
+        return;
+      }
+      res.send({uid: uid});
+    })
+         */
+      }
+    },
+  ], function(err, user) {
+    if(err) {
+      winston.error(err);
+    }
+
+    callback(err, user)
+  })
+}
+
 
 function loginUserByBrf(req, callback) {
   var fail = (msg) => {winston.error(msg); return callback(null, null);};
