@@ -94,9 +94,11 @@ plugin.init = function(params, callback) {
     // Either find the user or create them.
 
     touchAuthenticatedUser(req.body.token, function(err, uidObject){
-      if(err) return res.send(400);
+      if(err || !uidObject) return res.send(400);
       res.send({uid: uidObject.uid});
     });
+
+
 /*
     var token = req.body.token;
     if(!!token) {
@@ -201,10 +203,10 @@ function touchAuthenticatedUser(profileToken, callback) {
     },
     function(profile, next) {
       if(!profile) return fail("Profile could not be extracted from message.");
-      if(!!profile.metryID) {
-        if(!profile.name) return fail("No name provided in JWT from BRF.");
-        if(!profile.email) return fail("No email provided in JWT from BRF.");
+      if(!profile.name) return fail("No name provided in JWT from BRF.");
+      if(!profile.email) return fail("No email provided in JWT from BRF.");
 
+      if(!!profile.metryID) {
         var metryLoginPayload = { // intentionally skipping isAdmin - admin on BRF does not mean admin on forum.
           oAuthid: profile.metryID,
           handle: profile.name,
@@ -212,19 +214,21 @@ function touchAuthenticatedUser(profileToken, callback) {
         };
         metry.login(metryLoginPayload, next)
       } else {
-        next(new Error("NOt implemented w/o metryid"))
-        return;
-        /*
+        User.getUidByEmail(profile.email, function(err, uid) {
+          if(err) {
+            res.status(500);
+            console.log(err);
+            return;
+          }
 
-    User.getUidByUsername(req.body.username, function(err, uid) {
-      if(err) {
-        res.status(500);
-        console.log(err);
-        return;
-      }
-      res.send({uid: uid});
-    })
-         */
+          if(uid) {
+            next(null, {uid: uid});
+          } else {
+            User.create({username: profile.name, email: profile.email}, function(err, uid) {
+              next(err, {uid: uid});
+            });
+          }
+        })
       }
     },
   ], function(err, user) {
