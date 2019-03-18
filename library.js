@@ -77,61 +77,36 @@ plugin.init = function(params, callback) {
     }
   });
 
-  router.get('/brftouch', function(req, res, next) {
-    //Basically must use the same strategy as the metry code, just different end action
-    //should return an userId
-
-    //This could basically be a wrapper around metrysso login
-
-
-    // SO: email, username, metryid
-    // If metry present:
-    //   use oauth login first. If that gives a uid:
-    //   do we check the email? no... I suppose we just return it then.
-    //   And so it will be made that an accound with that metry surely exists.
-    //
-    // If not present:
-    // Either find the user or create them.
-
+  router.post('/brftouch', function(req, res, next) {
     touchAuthenticatedUser(req.body.token, function(err, uidObject){
       if(err || !uidObject) return res.send(400);
       res.send({uid: uidObject.uid});
     });
-
-
-/*
-    var token = req.body.token;
-    if(!!token) {
-      res.status(400);
-      return;
-    }
-
-    var secret = nconf.get('BRFENERGI_SESSION_SECRET');
-    var decoded;
-    try{
-      var decoded = jwt.verify(tok, secret);
-    } catch(e) {
-      res.status(500);
-      return;
-    }
-
-    if(!!decoded.metryId) {
-
-      return;
-    }
-    res.status(402);
-    return;
-
-    // TOO get user by email and then either login or create
-    */
   });
 
-  router.get('/brfauth/uid',
+  router.post('/brfauth/uid',
     // just normal authentication. But or is this a new strategy? 
     //should return an userId
     passport.authenticate('local', {}),
     function (req, res) {
-      res.send({uid: req.uid});
+      console.log(req);
+      User.getUsersWithFields([req.uid], ["metryId", "uid"], 1, function(err, users){
+        if(users.length !== 1) {
+          winston.err("Wrong number of users");
+          winston.log(users);
+          return res.status(500);
+        }
+
+        var user = users[0];
+
+        if(user.uid !== req.uid) {
+          winston.err("Mismatch in uid/metryid");
+          winston.log(users);
+          return res.status(500);
+        }
+
+        res.send({uid: user.uid, metryId: user.metryId});
+      });
     }
   );
 
