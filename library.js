@@ -132,10 +132,12 @@ plugin.init = function(params, callback) {
     else winston.info("Successfully joined group for privileges");
   });
 
+  /*
   Meta.settings.setOne('writeapi', 'jwt:secret', 'testturu', function(err) {
     if(err) {console.log(err);}
     console.log("Seems we have set the setting");
   })
+  */
 
   winston.info("Set up plugin BRF!");
 
