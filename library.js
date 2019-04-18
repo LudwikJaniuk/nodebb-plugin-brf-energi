@@ -53,7 +53,6 @@ plugin.init = function(params, callback) {
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
   router.get('/api/whoami', passport.authenticate("brf"), function(req, res, next) {
   	if(req.user) {
-  		console.log(req.user)
   		res.send({username: req.user.username, uid: req.user.uid});
 		} else {
   		res.sendStatus(403);
@@ -61,11 +60,9 @@ plugin.init = function(params, callback) {
 	})
   router.get('/authmetryifneeded', function(req, res, next) {
     var tok = req.query.brfauth;
-    console.log(tok)
     var secret = nconf.get('BRFENERGI_SESSION_SECRET')
     try{
       var obj = jwt.verify(tok, secret);
-      console.log(obj);
     } catch(e) {
       console.log("No valid jwt");
     }
@@ -85,11 +82,21 @@ plugin.init = function(params, callback) {
   });
 
   router.post('/brfauth/uid',
-    // just normal authentication. But or is this a new strategy? 
+    // proxy username for email
+    function (req, res, next) {
+      if (req.body.username && req.body.username.indexOf('@') !== -1) {
+        User.getUsernameByEmail(req.body.username, function (err, username) {
+          req.body.username = username ? username : req.body.username;
+          next();
+        });
+      } else {
+        next();
+      }
+    },
+    // just normal authentication. But or is this a new strategy?
     //should return an userId
     passport.authenticate('local', {}),
     function (req, res) {
-      console.log(req);
       User.getUsersWithFields([req.uid], ["metryId", "uid"], 1, function(err, users){
         if(users.length !== 1) {
           winston.err("Wrong number of users");
@@ -174,8 +181,6 @@ function touchAuthenticatedUser(profileToken, callback) {
     function (next) {
       var secret = nconf.get('BRFENERGI_SESSION_SECRET');
       console.log("Tryna decoe")
-      console.log(profileToken)
-      console.log(secret)
       jwt.verify(profileToken, secret, next);
     },
     function(profile, next) {
