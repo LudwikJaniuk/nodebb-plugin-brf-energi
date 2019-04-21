@@ -22,7 +22,7 @@ Redirects to `/auth/metry` if you're not logged in yet, otherwise just goes to h
 Wants an already-authenticated BRF token, and if it checks out it either authenticates the corresponding user or creates a new one in case it doesn't exist on the forum yet. 
 Used for the linking between forum and main website.
 
-## `/brfauth/uid` (Get user's uid and matryid)
+## `/api/brfauth/uid` (Get user's uid and matryid)
 
 Authenticates by username and password like normal, returns uid and metryid if exists.
 

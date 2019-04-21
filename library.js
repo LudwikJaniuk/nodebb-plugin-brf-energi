@@ -82,7 +82,7 @@ plugin.init = function(params, callback) {
     });
   });
 
-  router.post('/brfauth/uid',
+  router.post('/api/brfauth/uid',
     // proxy username for email
     function (req, res, next) {
       if (req.body.username && utils.isEmailValid(req.body.username)) {
