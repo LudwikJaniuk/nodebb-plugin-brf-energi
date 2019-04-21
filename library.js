@@ -4,6 +4,7 @@ var User = require.main.require('./src/user');
 var Groups = require.main.require('./src/groups');
 var Configs = require.main.require('./src/meta/configs');
 var Meta = require.main.require('./src/meta');
+var utils = require.main.require('./public/src/utils');
 var passport = module.parent.require('passport');
 var PasswordStrategy = module.parent.require('passport-local').Strategy;
 var winston = module.parent.require('winston');
@@ -84,7 +85,7 @@ plugin.init = function(params, callback) {
   router.post('/brfauth/uid',
     // proxy username for email
     function (req, res, next) {
-      if (req.body.username && req.body.username.indexOf('@') !== -1) {
+      if (req.body.username && utils.isEmailValid(req.body.username)) {
         User.getUsernameByEmail(req.body.username, function (err, username) {
           req.body.username = username ? username : req.body.username;
           next();
@@ -157,7 +158,6 @@ plugin.authByBrf = function({req, res, next}) {
 }
 
 plugin.auth = function({req, res, next}) {
-  console.log("WHAT")
   winston.info("User is not authed!");
   next();
 }
@@ -180,7 +180,6 @@ function touchAuthenticatedUser(profileToken, callback) {
   async.waterfall([
     function (next) {
       var secret = nconf.get('BRFENERGI_SESSION_SECRET');
-      console.log("Tryna decoe")
       jwt.verify(profileToken, secret, next);
     },
     function(profile, next) {
