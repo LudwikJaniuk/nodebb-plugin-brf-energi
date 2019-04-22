@@ -75,7 +75,7 @@ plugin.init = function(params, callback) {
     }
   });
 
-  router.post('/brftouch', function(req, res, next) {
+  router.post('/api/brftouch', function(req, res, next) {
     touchAuthenticatedUser(req.body.token, function(err, uidObject){
       if(err || !uidObject) return res.send(400);
       res.send({uid: uidObject.uid});
