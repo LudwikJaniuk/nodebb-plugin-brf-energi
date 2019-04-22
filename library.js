@@ -4,6 +4,7 @@ var User = require.main.require('./src/user');
 var Groups = require.main.require('./src/groups');
 var Configs = require.main.require('./src/meta/configs');
 var Meta = require.main.require('./src/meta');
+var utils = require.main.require('./public/src/utils');
 var passport = module.parent.require('passport');
 var PasswordStrategy = module.parent.require('passport-local').Strategy;
 var winston = module.parent.require('winston');
@@ -53,7 +54,6 @@ plugin.init = function(params, callback) {
   router.get('/api/admin/plugins/brf-energi', controllers.renderAdminPage);
   router.get('/api/whoami', passport.authenticate("brf"), function(req, res, next) {
   	if(req.user) {
-  		console.log(req.user)
   		res.send({username: req.user.username, uid: req.user.uid});
 		} else {
   		res.sendStatus(403);
@@ -61,11 +61,9 @@ plugin.init = function(params, callback) {
 	})
   router.get('/authmetryifneeded', function(req, res, next) {
     var tok = req.query.brfauth;
-    console.log(tok)
     var secret = nconf.get('BRFENERGI_SESSION_SECRET')
     try{
       var obj = jwt.verify(tok, secret);
-      console.log(obj);
     } catch(e) {
       console.log("No valid jwt");
     }
@@ -77,19 +75,29 @@ plugin.init = function(params, callback) {
     }
   });
 
-  router.post('/brftouch', function(req, res, next) {
+  router.post('/api/brftouch', function(req, res, next) {
     touchAuthenticatedUser(req.body.token, function(err, uidObject){
       if(err || !uidObject) return res.send(400);
       res.send({uid: uidObject.uid});
     });
   });
 
-  router.post('/brfauth/uid',
-    // just normal authentication. But or is this a new strategy? 
+  router.post('/api/brfauth/uid',
+    // proxy username for email
+    function (req, res, next) {
+      if (req.body.username && utils.isEmailValid(req.body.username)) {
+        User.getUsernameByEmail(req.body.username, function (err, username) {
+          req.body.username = username ? username : req.body.username;
+          next();
+        });
+      } else {
+        next();
+      }
+    },
+    // just normal authentication. But or is this a new strategy?
     //should return an userId
     passport.authenticate('local', {}),
     function (req, res) {
-      console.log(req);
       User.getUsersWithFields([req.uid], ["metryId", "uid"], 1, function(err, users){
         if(users.length !== 1) {
           winston.err("Wrong number of users");
@@ -150,7 +158,6 @@ plugin.authByBrf = function({req, res, next}) {
 }
 
 plugin.auth = function({req, res, next}) {
-  console.log("WHAT")
   winston.info("User is not authed!");
   next();
 }
@@ -173,9 +180,6 @@ function touchAuthenticatedUser(profileToken, callback) {
   async.waterfall([
     function (next) {
       var secret = nconf.get('BRFENERGI_SESSION_SECRET');
-      console.log("Tryna decoe")
-      console.log(profileToken)
-      console.log(secret)
       jwt.verify(profileToken, secret, next);
     },
     function(profile, next) {

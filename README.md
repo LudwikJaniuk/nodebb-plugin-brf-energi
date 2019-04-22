@@ -8,23 +8,32 @@ Specialized plugin for BRF Energi forum, supposed to make everything run right t
 
 Not really API, but shows admin interface and some options. Probably pretty ugly and full of test options
 
-## `/api/whoami`
-
-Performs BRF authentication, and if successful returns the userid
-
 ## `/authmetryifneeded`
 
 Redirects to `/auth/metry` if you're not logged in yet, otherwise just goes to homepage
 (For `/auth/metry`, see sso-metry plugin).
 
-## `/brftouch` (Mirror a brfapp user, create if needed)
+## `/api/whoami`
+
+Performs BRF authentication, and if successful returns the userid
+
+## `POST /api/brftouch` (Mirror a brfapp user, create if needed)
 
 Wants an already-authenticated BRF token, and if it checks out it either authenticates the corresponding user or creates a new one in case it doesn't exist on the forum yet. 
 Used for the linking between forum and main website.
 
-## `/brfauth/uid` (Get user's uid and matryid)
+## `POST /api/brfauth/uid` (Get user's uid and matryid)
 
-Authenticates by username and password like normal, returns uid and metryid if exists.
+Authenticates by username/email and password like normal, returns uid and metryid if exists.
+You can use an email as the username, it willbe resolved.
+In case of incorrect password, you'll get something like this:
+```json
+{
+    "path": "&#x2F;forum&#x2F;api&#x2F;brfauth&#x2F;uid",
+    "error": "[[error:invalid-login-credentials]]"
+}
+```
+
 
 ## `POST brfenergi.se/forum/api/v2/users/` (Register a new user)
 
